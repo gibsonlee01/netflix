@@ -1,0 +1,63 @@
+# Uncomment this line to define a global platform for your project
+# platform :ios, '11.0'
+pod 'Firebase/Core'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+target 'Runner' do
+  # 기존 설정 내용
+  # ...
+
+  # CocoaPods 설정 추가
+  # Pods-Runner/Pods-Runner.profile.xcconfig 파일을 사용합니다.
+  # `Runner` 대신 다른 타겟 이름을 사용해야 하는 경우 이에 맞게 수정합니다.
+  if !File.exist?('Runner.xcworkspace') && File.exist?('Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig')
+    xcconfig_path = 'Pods/Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig'
+    xcconfig_relative_path = Pathname.new(xcconfig_path).relative_path_from(Pathname.new(File.dirname('Runner.xcworkspace')))
+    puts "Base Configuration: #{xcconfig_relative_path}"
+    project 'Runner.xcodeproj'
+    File.open("#{project.path}/project.pbxproj", 'a') { |file|
+      file.puts "\n/* Begin Pods #{project.basename} */"
+      file.puts " #include \"#{xcconfig_relative_path}\""
+      file.puts "/* End Pods #{project.basename} */\n"
+    }
+  end
+end
+
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+  end
+end
